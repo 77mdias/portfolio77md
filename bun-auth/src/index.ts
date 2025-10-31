@@ -6,7 +6,14 @@ import { openapi } from "@elysiajs/openapi";
 import { betterAuthPlugin, OpenAPI } from "./http/plugins/better-auth";
 
 const app = new Elysia()
-  .use(cors())
+  .use(
+    cors({
+      origin: true, // Permite qualquer origem (ou especificar array de URLs)
+      credentials: true, // IMPORTANTE: Permite cookies cross-origin
+      allowedHeaders: ["Content-Type", "Authorization"],
+      methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    })
+  )
   .use(
     openapi({
       documentation: {

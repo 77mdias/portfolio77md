@@ -24,6 +24,10 @@ export const auth = betterAuth({
     ...(env.NODE_ENV === "production" && process.env.RAILWAY_PUBLIC_DOMAIN
       ? [`https://${process.env.RAILWAY_PUBLIC_DOMAIN}`]
       : []),
+    // Frontend Vercel URL em produção
+    ...(env.NODE_ENV === "production"
+      ? ["https://77mdiasdev.vercel.app"]
+      : []),
   ],
   advanced: {
     database: { generateId: false },
@@ -56,4 +60,14 @@ export const auth = betterAuth({
       maxAge: 60 * 5, // 5 minutes
     },
   },
+  // Configurações de cookies para produção cross-origin
+  ...(env.NODE_ENV === "production"
+    ? {
+        cookies: {
+          secure: true, // Apenas HTTPS
+          sameSite: "none", // Permite cross-site
+          domain: undefined, // Não especificar domínio para cross-origin
+        },
+      }
+    : {}),
 });
