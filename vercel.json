@@ -1,30 +1,4 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "react-auth/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    },
-    {
-      "src": "bun-auth/src/index.ts",
-      "use": "@vercel/bun"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/auth/(.*)",
-      "dest": "bun-auth/src/index.ts"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "bun-auth/src/index.ts"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "react-auth/dist/$1"
-    }
-  ]
+  "buildCommand": "cd react-auth && npm run build:prod",
+  "outputDirectory": "react-auth/dist"
 }
