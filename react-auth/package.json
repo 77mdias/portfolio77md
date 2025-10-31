@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite --mode development",
-    "build": "tsc -b && vite build",
-    "build:staging": "tsc -b && vite build --mode staging",
-    "build:prod": "tsc -b && vite build --mode production",
+    "build": "vite build",
+    "build:staging": "vite build --mode staging",
+    "build:prod": "vite build --mode production",
     "vercel-build": "npm run build:prod",
+    "typecheck": "tsc -b",
     "lint": "eslint .",
     "preview": "vite preview"
   },
