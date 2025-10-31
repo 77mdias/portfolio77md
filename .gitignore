@@ -53,6 +53,11 @@ yarn-error.log*
 
 # ✅ PERMITE versionar apenas templates seguros
 !.env.example
+!.env.prod.example
+
+# Garante que arquivos de produção específicos nunca sejam commitados
+bun-auth/.env.production
+react-auth/.env.production
 
 # Arquivos de backup de ambiente (caso existam)
 .env.backup

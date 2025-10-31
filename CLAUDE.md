@@ -181,6 +181,32 @@ bun run lint                 # Lint code with ESLint
 ./deploy.sh clean            # Clean all containers and volumes
 ```
 
+### Production Deployment with Supabase + Vercel
+
+For production deployment using Supabase (PostgreSQL) and Vercel, see the comprehensive guide:
+
+📖 **[DEPLOY-SUPABASE.md](./DEPLOY-SUPABASE.md)** - Complete deployment guide with:
+- Supabase configuration and setup
+- Database migrations for production
+- Vercel environment variables setup
+- Security best practices
+- Troubleshooting common issues
+
+Quick reference for database migrations in production:
+
+```bash
+cd bun-auth
+
+# Generate migrations from schema changes
+bun run db:generate:prod
+
+# Apply migrations to Supabase database
+bun run db:migrate:prod
+
+# Or use push for quick schema sync (no migration files)
+bun run db:push:prod
+```
+
 ## Database
 
 - PostgreSQL 15-alpine running in Docker
