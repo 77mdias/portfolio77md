@@ -1,0 +1,22 @@
+# Arquivos específicos do Docker
+node_modules
+dist
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs
+*.log
+
+# Database files
+*.db
+*.sqlite
+
+# IDE
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
