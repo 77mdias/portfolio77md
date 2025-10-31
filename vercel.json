@@ -5,7 +5,7 @@
       "src": "react-auth/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "react-auth/dist"
+        "distDir": "dist"
       }
     },
     {

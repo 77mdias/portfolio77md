@@ -26,6 +26,8 @@ dist-ssr
 .env*
 .env.development
 .env.local
-.env.production
 .env.staging
 .env.test
+
+# Permitir .env.production (contém apenas URL pública)
+!.env.production
