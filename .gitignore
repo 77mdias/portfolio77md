@@ -57,7 +57,7 @@ yarn-error.log*
 
 # Garante que arquivos de produção específicos nunca sejam commitados
 bun-auth/.env.production
-react-auth/.env.production
+
 
 # Arquivos de backup de ambiente (caso existam)
 .env.backup
