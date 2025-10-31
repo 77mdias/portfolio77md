@@ -201,7 +201,7 @@ Deve retornar: `"Hello Elysia"`
 
 ```bash
 # Criar usuário
-curl -X POST https://seu-projeto.vercel.app/auth/sign-up/email \
+curl -X POST https://77mdiasdev.vercel.app/auth/sign-up/email \
   -H "Content-Type: application/json" \
   -d '{
     "email": "teste@example.com",
