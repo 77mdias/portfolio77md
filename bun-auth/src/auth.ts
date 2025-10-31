@@ -5,9 +5,11 @@ import { db } from "./database/client";
 import { password } from "bun";
 import { env } from "./env";
 
+// Better Auth é configurado e exportado para uso na aplicação
 export const auth = betterAuth({
   basePath: "/auth",
   plugins: [openAPI()],
+  // Configuração do banco de dados com Drizzle ORM
   database: drizzleAdapter(db, {
     provider: "pg",
     usePlural: true,
@@ -25,15 +27,12 @@ export const auth = betterAuth({
       ? [`https://${process.env.RAILWAY_PUBLIC_DOMAIN}`]
       : []),
     // Frontend Vercel URL em produção
-    ...(env.NODE_ENV === "production"
-      ? ["https://77mdiasdev.vercel.app"]
-      : []),
+    ...(env.NODE_ENV === "production" ? ["https://77mdiasdev.vercel.app"] : []),
   ],
-  advanced: {
-    database: { generateId: false },
-  },
+  // Autenticação via email e senha
   emailAndPassword: {
     enabled: true,
+    // Auto login após cadastro
     autoSignIn: true,
     password: {
       hash: (password: string) => Bun.password.hash(password),
@@ -43,6 +42,7 @@ export const auth = betterAuth({
       // Send an email to the user with a link to reset their password
     },
   },
+  // Provedores sociais
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -60,14 +60,12 @@ export const auth = betterAuth({
       maxAge: 60 * 5, // 5 minutes
     },
   },
-  // Configurações de cookies para produção cross-origin
-  ...(env.NODE_ENV === "production"
-    ? {
-        cookies: {
-          secure: true, // Apenas HTTPS
-          sameSite: "none", // Permite cross-site
-          domain: undefined, // Não especificar domínio para cross-origin
-        },
-      }
-    : {}),
+  // Configurações avançadas e cookies para produção cross-origin
+  advanced: {
+    generateId: false,
+    crossSubDomainCookies: {
+      enabled: true,
+    },
+    cookiePrefix: "better_auth",
+  },
 });

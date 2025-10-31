@@ -125,7 +125,7 @@ export default function SignIn() {
                       await signIn.social(
                         {
                           provider: "google",
-                          callbackURL: "/profile"
+                          callbackURL: `${window.location.origin}/profile`
                         },
                         {
                           onRequest: () => setLoading(true),
@@ -146,7 +146,7 @@ export default function SignIn() {
                       await signIn.social(
                         {
                           provider: "discord",
-                          callbackURL: "/profile"
+                          callbackURL: `${window.location.origin}/profile`
                         },
                         {
                           onRequest: () => setLoading(true),
