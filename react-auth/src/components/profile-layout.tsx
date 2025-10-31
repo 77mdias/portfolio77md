@@ -2,12 +2,36 @@
 // Gerado a partir do Figma (node 5:129) e adaptado para React + Tailwind
 
 import { useSession } from "../lib/auth";
+import { useEffect } from "react";
+
 export default function ProfileLayout() {
-  const { data: session, isPending } = useSession();
+  const { data: session, isPending, error } = useSession();
+
+  useEffect(() => {
+    console.log("[Profile] Session state changed:", {
+      isPending,
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      error,
+      cookies: document.cookie,
+    });
+
+    if (session?.user) {
+      console.log("[Profile] User data:", {
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.name,
+      });
+    }
+  }, [session, isPending, error]);
+
   if (isPending) {
+    console.log("[Profile] Still loading session...");
     return <div className="flex justify-center items-center h-40 text-zinc-400">Carregando perfil...</div>;
   }
+
   if (!session?.user) {
+    console.error("[Profile] No session found! Cookies:", document.cookie);
     return <div className="flex justify-center items-center h-40 text-zinc-400">Usuário não autenticado.</div>;
   }
   // Avatar SVG fallback

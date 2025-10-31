@@ -6,7 +6,18 @@ export const betterAuthPlugin = new Elysia({ name: "better-auth" })
   .macro({
     auth: {
       async resolve({ status, request: { headers } }) {
+        console.log("[Better Auth] Validating session with headers:", {
+          cookie: headers.get("cookie"),
+          origin: headers.get("origin"),
+          referer: headers.get("referer"),
+        });
+
         const session = await auth.api.getSession({ headers });
+
+        console.log("[Better Auth] Session validation result:", session ? {
+          userId: session.user.id,
+          email: session.user.email,
+        } : "No session found");
 
         if (!session) {
           return status(401, { message: "Unauthorized" });

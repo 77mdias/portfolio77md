@@ -53,8 +53,13 @@ export default function SignUp() {
 
   const onSubmit = async (data: SignUpFormSchema) => {
     setLoading(true);
+    console.log("[Sign Up] Starting sign up process for:", data.email);
+
     try {
       const imageBase64 = data.image && data.image[0] ? await convertImageToBase64(data.image[0]) : undefined;
+
+      console.log("[Sign Up] Calling signUp.email with backend URL:", import.meta.env.VITE_BETTER_AUTH_URL);
+
       await signUp.email({
         email: data.email,
         password: data.password,
@@ -62,13 +67,35 @@ export default function SignUp() {
         image: imageBase64,
         callbackURL: "/dashboard",
         fetchOptions: {
-          onResponse: () => setLoading(false),
-          onRequest: () => setLoading(true),
-          onError: (ctx) => { toast.error(ctx.error.message); },
-          onSuccess: async () => navigate("/profile"),
+          onResponse: (ctx) => {
+            console.log("[Sign Up] Response received:", {
+              status: ctx.response.status,
+              headers: Object.fromEntries(ctx.response.headers.entries()),
+            });
+            setLoading(false);
+          },
+          onRequest: (ctx) => {
+            console.log("[Sign Up] Request sent:", {
+              url: ctx.url,
+              method: ctx.method,
+              credentials: ctx.credentials,
+            });
+            setLoading(true);
+          },
+          onError: (ctx) => {
+            console.error("[Sign Up] Error:", ctx.error);
+            toast.error(ctx.error.message);
+          },
+          onSuccess: async (ctx) => {
+            console.log("[Sign Up] Success! Response data:", ctx.data);
+            console.log("[Sign Up] Cookies after signup:", document.cookie);
+            console.log("[Sign Up] Navigating to /profile...");
+            navigate("/profile");
+          },
         },
       });
     } catch (e: any) {
+      console.error("[Sign Up] Caught exception:", e);
       toast.error(e?.message || "Sign up failed");
     } finally {
       setLoading(false);
