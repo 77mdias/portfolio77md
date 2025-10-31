@@ -1,0 +1,26 @@
+# Arquivos específicos do Docker
+node_modules
+dist
+.env.development
+.env.staging
+.env.local
+.env.*.local
+
+# Logs
+logs
+*.log
+
+# IDE
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Outros
+README.md

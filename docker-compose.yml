@@ -1,0 +1,90 @@
+version: "3.8"
+
+services:
+  # Banco de Dados PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: app-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: auth
+      POSTGRES_USER: docker
+      POSTGRES_PASSWORD: docker
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./bun-auth/src/database/migrations:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docker -d auth"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Backend (Elysia + Bun)
+  backend:
+    build:
+      context: ./bun-auth
+      dockerfile: Dockerfile
+    container_name: app-backend
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://docker:docker@postgres:5432/auth
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-fyHL0ZB9Cek2f3HYIE5bQfQ9YVeR22xG}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-http://localhost:3333}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
+      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
+    ports:
+      - "3333:3333"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+    volumes:
+      - ./bun-auth/src:/app/src:ro
+
+  # Frontend (React + Nginx)
+  frontend:
+    build:
+      context: ./react-auth
+      dockerfile: Dockerfile
+    container_name: app-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    environment:
+      - VITE_BETTER_AUTH_URL=http://localhost:3333
+
+  # pgAdmin (Opcional - para gerenciar BD)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: app-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "8080:80"
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+    profiles:
+      - dev
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge
