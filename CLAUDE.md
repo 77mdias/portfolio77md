@@ -23,9 +23,11 @@ The application implements a complete authentication system with email/password 
 
 1. **Better Auth Integration** (`src/http/plugins/better-auth.ts`):
    - Custom Elysia plugin wraps Better Auth handler
-   - Implements auth macro for protecting routes with `{ auth: true }`
+   - Mounts auth handler that automatically creates all auth routes at `/auth/*`
+   - Implements auth macro for protecting routes with `{ auth: true }` option
    - Exposes OpenAPI schema generation for auth endpoints
-   - Session validation via `auth.api.getSession()`
+   - Session validation via `auth.api.getSession()` with cookie headers
+   - When a route uses `{ auth: true }`, the user object is injected into route context
 
 2. **Database Layer** (`src/database/`):
    - Drizzle ORM with PostgreSQL adapter
@@ -37,8 +39,33 @@ The application implements a complete authentication system with email/password 
    - Centralized environment variable management
    - All configs import from `@/env`
 
-4. **Path Aliases**:
+4. **Main Application Entry** (`src/index.ts`):
+   - Elysia app instance configured with CORS middleware
+   - OpenAPI/Swagger documentation auto-generated from route schemas
+   - Better Auth plugin registered (provides `/auth/*` routes and `{ auth: true }` macro)
+   - Custom routes defined with Zod validation and OpenAPI details
+   - Example protected route at `/users/:id` demonstrates auth macro usage
+
+5. **Path Aliases**:
    - `@/` maps to `src/` directory
+   - Used throughout codebase: `@/auth`, `@/env`, `@/database`, etc.
+
+#### Adding New Protected Routes
+
+To add a new protected route in the backend:
+
+```typescript
+.get("/your-route", ({ user }) => {
+  // user object is automatically injected by auth macro
+  return { data: "protected data", userId: user.id };
+}, {
+  auth: true,  // Enables authentication check
+  detail: {
+    summary: "Your route description",
+    tags: ["your-tag"]
+  }
+})
+```
 
 ### Frontend (react-auth)
 
@@ -51,70 +78,150 @@ The application implements a complete authentication system with email/password 
 #### Key Architecture Patterns:
 
 1. **Authentication Client** (`src/lib/auth.ts`):
-   - Better Auth React client configured to connect to backend at `http://localhost:3333/`
+   - Better Auth React client configured via `VITE_BETTER_AUTH_URL` environment variable
+   - Defaults to `http://localhost:3333/` if not set
    - Exports convenience hooks: `signIn`, `signOut`, `signUp`, `useSession`
+   - These hooks can be used directly in components for auth operations
 
 2. **Routing Structure** (`src/main.tsx`):
-   - `/` - Home/App page
-   - `/signin` - Sign in page
-   - `/signup` - Sign up page
-   - `/profile` - Protected profile page
+   - React Router DOM with BrowserRouter
+   - Routes:
+     - `/` - Home/App page
+     - `/signin` - Sign in page
+     - `/signup` - Sign up page
+     - `/profile` - Protected profile page
+   - No built-in route protection - components handle auth checks via `useSession`
 
 3. **Component Organization**:
-   - `src/components/ui/` - Reusable UI components (shadcn/ui pattern)
-   - `src/components/` - Feature components (sign-in, sign-up, profile-layout)
-   - Top-level route components in `src/`
+   - `src/components/ui/` - Reusable UI components (shadcn/ui pattern with Radix UI)
+   - `src/components/` - Feature components (sign-in-form, sign-up-form, profile-layout)
+   - Top-level route components in `src/` (app.tsx, signin.tsx, signup.tsx, profile.tsx)
+   - Forms use React Hook Form with Zod validation via @hookform/resolvers
 
 4. **Path Aliases**:
    - `@/` maps to `src/` directory
+   - Configured in vite.config.ts and tsconfig.json
+
+#### Using Authentication in Frontend Components
+
+```typescript
+import { useSession, signIn, signOut } from "@/lib/auth";
+
+function MyComponent() {
+  const { data: session, isPending } = useSession();
+
+  if (isPending) return <div>Loading...</div>;
+  if (!session) return <div>Not authenticated</div>;
+
+  return <div>Hello {session.user.name}</div>;
+}
+```
 
 ## Development Commands
+
+### Starting Development Environment
+
+```bash
+# Start all services (PostgreSQL, backend, frontend) with Docker
+./deploy.sh dev
+
+# OR start services individually:
+
+# 1. Start PostgreSQL database only
+docker compose up -d postgres
+
+# 2. Start backend (from bun-auth directory)
+cd bun-auth && bun run dev
+
+# 3. Start frontend (from react-auth directory)
+cd react-auth && bun run dev
+```
+
+The backend runs on **http://localhost:3333**
+The frontend runs on **http://localhost:5173**
 
 ### Backend (bun-auth)
 
 ```bash
-# Start development server with hot reload
-bun run dev
+# Development
+bun run dev                  # Start dev server with hot reload
 
 # Database operations
-bun run db:generate  # Generate Drizzle migrations
-bun run db:migrate   # Run migrations
-
-# Start PostgreSQL database
-docker compose up -d
+bun run db:generate          # Generate Drizzle migrations from schema changes
+bun run db:migrate           # Apply migrations to database
 ```
-
-The backend runs on **http://localhost:3333**
 
 ### Frontend (react-auth)
 
 ```bash
-# Start development server
-bun run dev
+# Development
+bun run dev                  # Start dev server
 
-# Build for production
-bun run build
+# Production builds
+bun run build                # Build for production
+bun run build:staging        # Build for staging
+bun run build:prod           # Build for production (explicit)
+bun run vercel-build         # Build for Vercel deployment
 
-# Preview production build
-bun run preview
-
-# Lint code
-bun run lint
+# Other commands
+bun run preview              # Preview production build locally
+bun run lint                 # Lint code with ESLint
 ```
 
-The frontend runs on **http://localhost:5173**
+### Docker Deployment
+
+```bash
+# Use the deploy script for all deployment operations
+./deploy.sh dev              # Deploy development environment
+./deploy.sh prod             # Deploy production environment
+./deploy.sh status           # Check container status
+./deploy.sh logs [service]   # View logs (optional: specify service)
+./deploy.sh backup           # Backup database
+./deploy.sh restore <file>   # Restore from backup
+./deploy.sh clean            # Clean all containers and volumes
+```
 
 ## Database
 
-- PostgreSQL 17 running in Docker
-- Connection: `postgresql://docker:docker@localhost:5432/auth`
+- PostgreSQL 15-alpine running in Docker
+- Connection (dev): `postgresql://docker:docker@localhost:5432/auth`
 - Managed via Drizzle ORM with migrations
-- Schema uses snake_case convention
+- Schema uses snake_case convention (enforced in Drizzle config)
 
-When modifying database schema:
+### Database Schema Organization
+
+The database schema is split across domain modules in `bun-auth/src/database/schema/`:
+- Users table - user accounts
+- Sessions table - active user sessions
+- Accounts table - OAuth provider accounts
+- Verifications table - email verification tokens
+
+### Modifying Database Schema
+
 1. Update schema files in `bun-auth/src/database/schema/`
-2. Run `bun run db:generate` to create migration
+2. Run `bun run db:generate` to create migration (from bun-auth directory)
 3. Run `bun run db:migrate` to apply migration
+4. Migrations are stored in `bun-auth/src/database/migrations/`
+
+## Docker Services
+
+The application uses Docker Compose with different configurations:
+
+### Development (docker-compose.yml)
+
+- **postgres** - PostgreSQL 15-alpine database (port 5432)
+- **backend** - Bun/Elysia API server (port 3333)
+- **frontend** - React app with Nginx (port 80)
+- **pgadmin** - Database management UI (port 8080, dev profile only)
+
+### Production (docker-compose.prod.yml)
+
+- **nginx** - Reverse proxy with SSL support (ports 80, 443)
+- **postgres** - PostgreSQL with persistent volumes and backups
+- **backend** - Optimized multi-stage build with non-root user
+- **frontend** - Static build served by Nginx with SPA routing
+
+All services communicate via a shared `app-network` bridge network.
 
 ## Authentication Flow
 
@@ -127,10 +234,43 @@ When modifying database schema:
 4. Frontend uses Better Auth React client to communicate with backend
 5. Sessions validated via cookies with 7-day expiration
 
+## Environment Configuration
+
+### Development Environment Variables
+
+Create `.env` files based on `.env.example` in the project root:
+
+**Required for Backend (bun-auth)**:
+- `BETTER_AUTH_SECRET` - Secret for Better Auth session signing
+- `BETTER_AUTH_URL` - Backend URL (default: http://localhost:3333)
+- `DATABASE_URL` - Constructed from DB_NAME, DB_USER, DB_PASSWORD
+- OAuth credentials (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, etc.)
+
+**Required for Frontend (react-auth)**:
+- `VITE_BETTER_AUTH_URL` - Backend API URL (configured in .env.development, .env.staging, .env.production)
+
+### Production Deployment
+
+The project supports multiple deployment targets:
+
+1. **Docker Deployment**:
+   - Use `./deploy.sh prod` to deploy with docker-compose.prod.yml
+   - Requires `.env.prod` with production credentials
+   - Includes Nginx reverse proxy for HTTPS
+   - Automated database backups available
+
+2. **Vercel Deployment**:
+   - Configured via `vercel.json` in project root
+   - Frontend deployed as static build
+   - Backend deployed as serverless function with @vercel/bun
+   - Routes configured to proxy `/auth/*` and `/api/*` to backend
+
 ## Important Configuration Notes
 
-- Backend CORS enabled for frontend origin (localhost:5173)
-- Frontend uses Rolldown (Vite fork) instead of standard Vite
+- Backend CORS enabled for frontend origin (localhost:5173 in dev)
+- Frontend uses Rolldown (Vite fork via npm:rolldown-vite@7.1.14) instead of standard Vite
 - Both projects use Zod v4 for validation
 - TypeScript path aliases (`@/`) configured in both tsconfig.json files
 - Environment variables managed via .env files (not committed to git)
+- React 19 with React Router DOM for routing (no Next.js)
+- Database uses snake_case naming convention (enforced in Drizzle config)
