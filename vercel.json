@@ -1,5 +1,11 @@
 {
   "buildCommand": "cd react-auth && npm install && npm run build:prod",
   "outputDirectory": "react-auth/dist",
-  "installCommand": "npm install --prefix react-auth"
+  "installCommand": "npm install --prefix react-auth",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
