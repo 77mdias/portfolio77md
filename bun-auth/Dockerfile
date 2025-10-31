@@ -13,7 +13,7 @@ WORKDIR /app
 COPY package.json bun.lockb* ./
 RUN bun install --frozen-lockfile
 COPY . .
-RUN bun run db:generate
+# Não rodar migrations no build - deve ser feito manualmente em produção
 
 # Produção
 FROM base AS production
@@ -27,15 +27,16 @@ RUN adduser --system --uid 1001 bunjs
 COPY --from=deps --chown=bunjs:nodejs /app/node_modules ./node_modules
 COPY --from=build --chown=bunjs:nodejs /app .
 
-# Expor porta
+# Render atribui porta dinamicamente via $PORT
+# Expor porta padrão (será sobrescrita pela variável PORT)
 EXPOSE 3333
 
 # Mudar para usuário não-root
 USER bunjs
 
-# Health check
+# Health check - usa $PORT se disponível
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3333/ || exit 1
+  CMD curl -f http://localhost:${PORT:-3333}/ || exit 1
 
 # Comando de inicialização
 CMD ["bun", "run", "src/index.ts"]
