@@ -4,11 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a fullstack authentication application with two main components:
-- **bun-auth**: Backend API built with Bun, Elysia, and Better Auth
-- **react-auth**: Frontend React application with Vite
+This is a **fullstack developer community forum** application with Reddit-style post system. The project has two main components:
+- **bun-auth**: Backend Web API built with Bun, Elysia, Better Auth, Drizzle ORM, and TypeScript
+- **react-auth**: Frontend React application (pure React with Vite)
 
-The application implements a complete authentication system with email/password and social OAuth (Google, Discord).
+### Current State
+The application currently implements a complete authentication system with email/password and social OAuth (Google, Discord).
+
+### Project Goal
+Build a community forum platform for developers featuring:
+- **Reddit-style post system** with voting, comments, and discussions
+- User authentication and authorization
+- Post creation, editing, and deletion
+- Voting system (upvotes/downvotes)
+- Nested comment threads
+- Community/subreddit-like organization
+- User profiles and reputation system
+- Rich text editor for posts and comments
 
 ## Architecture
 
@@ -117,6 +129,83 @@ function MyComponent() {
 }
 ```
 
+## Forum System Architecture (Planned)
+
+### Database Schema for Forum Features
+
+The forum system will extend the existing authentication schema with the following tables:
+
+1. **Communities/Subreddits** (`communities`):
+   - Basic info: name, slug, description, icon, banner
+   - Timestamps: created_at, updated_at
+   - Relationships: creator (user_id)
+
+2. **Posts** (`posts`):
+   - Content: title, body (markdown/rich text), slug
+   - Metadata: vote_count, comment_count, views
+   - Relationships: author (user_id), community (community_id)
+   - Status: published, draft, archived
+   - Timestamps: created_at, updated_at, published_at
+
+3. **Comments** (`comments`):
+   - Content: body (markdown/rich text)
+   - Metadata: vote_count, depth (for nested comments)
+   - Relationships: author (user_id), post (post_id), parent_comment (comment_id)
+   - Timestamps: created_at, updated_at
+
+4. **Votes** (`votes`):
+   - Type: upvote (+1) or downvote (-1)
+   - Target: votable_type (post/comment), votable_id
+   - Relationships: user (user_id)
+   - Constraints: unique constraint on (user_id, votable_type, votable_id)
+
+5. **User Reputation** (stored in users table or separate `user_stats`):
+   - Karma/reputation points
+   - Post count, comment count
+   - Join date, last active
+
+### API Routes Structure (Planned)
+
+**Community Routes** (`/api/communities/*`):
+- `GET /api/communities` - List all communities
+- `POST /api/communities` - Create community (auth required)
+- `GET /api/communities/:slug` - Get community details
+- `PATCH /api/communities/:slug` - Update community (auth + owner)
+
+**Post Routes** (`/api/posts/*`):
+- `GET /api/posts` - List posts (with filters: community, user, sort)
+- `POST /api/posts` - Create post (auth required)
+- `GET /api/posts/:slug` - Get post with comments
+- `PATCH /api/posts/:slug` - Update post (auth + author)
+- `DELETE /api/posts/:slug` - Delete post (auth + author)
+
+**Comment Routes** (`/api/comments/*`):
+- `GET /api/posts/:postId/comments` - Get post comments (nested)
+- `POST /api/posts/:postId/comments` - Create comment (auth required)
+- `PATCH /api/comments/:id` - Update comment (auth + author)
+- `DELETE /api/comments/:id` - Delete comment (auth + author)
+
+**Vote Routes** (`/api/votes/*`):
+- `POST /api/votes` - Cast vote (auth required, upsert logic)
+- `DELETE /api/votes/:id` - Remove vote (auth required)
+
+### Frontend Pages (Planned)
+
+- `/` - Home feed with posts from all communities
+- `/c/:slug` - Community page with community posts
+- `/c/:slug/post/:slug` - Individual post view with comments
+- `/submit` - Create new post (auth required)
+- `/u/:username` - User profile with posts and comments
+
+### Technical Considerations
+
+- **Voting System**: Use optimistic updates on frontend, background jobs for vote count aggregation
+- **Comment Threading**: Implement using adjacency list or nested set pattern (max depth limit)
+- **Content Sanitization**: Sanitize HTML/markdown input to prevent XSS
+- **Rate Limiting**: Implement rate limits for post/comment creation
+- **Search**: Consider adding full-text search with PostgreSQL or external service
+- **Moderation**: Plan for community moderators and content reporting system
+
 ## Development Commands
 
 ### Starting Development Environment
@@ -216,11 +305,19 @@ bun run db:push:prod
 
 ### Database Schema Organization
 
-The database schema is split across domain modules in `bun-auth/src/database/schema/`:
-- Users table - user accounts
-- Sessions table - active user sessions
-- Accounts table - OAuth provider accounts
-- Verifications table - email verification tokens
+**Current Schema** (Authentication system) in `bun-auth/src/database/schema/`:
+- `users` - User accounts
+- `sessions` - Active user sessions
+- `accounts` - OAuth provider accounts
+- `verifications` - Email verification tokens
+
+**Planned Schema** (Forum system) to be added:
+- `communities` - Community/subreddit-like spaces
+- `posts` - Forum posts with title, body, metadata
+- `comments` - Nested comments on posts
+- `votes` - Upvotes/downvotes for posts and comments
+- `user_stats` (optional) - User reputation, karma, and statistics
+- `community_members` (optional) - Community membership and roles
 
 ### Modifying Database Schema
 
@@ -293,6 +390,16 @@ The project supports multiple deployment targets:
 
 ## Important Configuration Notes
 
+### Technology Stack
+- **Backend**: Elysia.js + Bun runtime + TypeScript
+- **Database**: PostgreSQL with Drizzle ORM
+- **Authentication**: Better Auth with custom Elysia plugin
+- **Frontend**: Pure React 19 (no Next.js) + React Router DOM
+- **Build Tool**: Vite with Rolldown fork (npm:rolldown-vite@7.1.14)
+- **Styling**: Tailwind CSS v4 + Radix UI components
+- **Validation**: Zod v4 for both backend and frontend
+
+### Configuration Details
 - Backend CORS enabled for frontend origin (localhost:5173 in dev)
 - Frontend uses Rolldown (Vite fork via npm:rolldown-vite@7.1.14) instead of standard Vite
 - Both projects use Zod v4 for validation

@@ -1,6 +1,10 @@
 # Multi-stage build para otimização
 FROM oven/bun:1.1.30-alpine AS base
 
+# Argumentos de build
+ARG NODE_ENV=production
+ENV NODE_ENV=$NODE_ENV
+
 # Instalar dependências
 FROM base AS deps
 WORKDIR /app

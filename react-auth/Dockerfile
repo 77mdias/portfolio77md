@@ -1,6 +1,14 @@
 # Multi-stage build para React + Nginx
 FROM node:18-alpine AS build
 
+# Argumentos de build
+ARG NODE_ENV=production
+ARG VITE_BETTER_AUTH_URL
+
+# Definir variáveis de ambiente para o build
+ENV NODE_ENV=$NODE_ENV
+ENV VITE_BETTER_AUTH_URL=$VITE_BETTER_AUTH_URL
+
 # Definir diretório de trabalho
 WORKDIR /app
 
